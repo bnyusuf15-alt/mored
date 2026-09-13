@@ -3,7 +3,7 @@ import re
 import requests
 
 playlist_url = "https://hdfauth.ftven.fr/esi/TA?url=https://simulcast-p.ftven.fr/simulcast/France_Info/hls_monde_frinfo/France_Info.m3u8"
-output_file = "FR/franceinfo.m3u8"
+output_file = "res/26-1/franceinfo.m3u8"
 
 # Tarayıcı gibi görünmek için User-Agent tanımlıyoruz
 headers = {
