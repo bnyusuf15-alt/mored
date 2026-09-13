@@ -5,8 +5,13 @@ import requests
 playlist_url = "https://hdfauth.ftven.fr/esi/TA?url=https://simulcast-p.ftven.fr/simulcast/France_Info/hls_monde_frinfo/France_Info.m3u8"
 output_file = "FR/franceinfo.m3u8"
 
+# Tarayıcı gibi görünmek için User-Agent tanımlıyoruz
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+}
+
 # Ana m3u8 dosyasını indir
-response = requests.get(playlist_url)
+response = requests.get(playlist_url, headers=headers)
 response.raise_for_status()
 
 # .m3u8'den sonraki query parametrelerini temizle
@@ -17,11 +22,11 @@ for line in response.text.splitlines():
     cleaned_lines.append(line)
 stream_url = "\n".join(cleaned_lines)
 
-# stream_url içindeki dosya adını silerek base_url oluştur (örn: .../hls_monde_frinfo/)
+# stream_url içindeki dosya adını silerek base_url oluştur
 base_url = stream_url.rsplit("/", 1)[0] + "/"
 
-# Referans verilen alt m3u8 / içerik dosyasını indir
-stream_response = requests.get(stream_url)
+# Referans verilen alt m3u8 / içerik dosyasını indir (aynı header ile)
+stream_response = requests.get(stream_url, headers=headers)
 stream_response.raise_for_status()
 
 # İçeriği satır satır işleyerek mutlak URL'lere dönüştür
@@ -32,26 +37,21 @@ for line in stream_response.text.splitlines():
     continue
 
   if line.startswith("#"):
-    # AUDIO, SUBTITLES vb. için URI= veya URL= içeren kısımları yakala
     if "URI=" in line or "URL=" in line:
-
       def fix_url(match):
-        prefix = match.group(1)  # Örn: URI=" veya URL=
-        val = match.group(2)  # İçindeki adres
-        quote = match.group(3)  # Kapanış tırnağı (varsa)
+        prefix = match.group(1)
+        val = match.group(2)
+        quote = match.group(3)
 
-        # Eğer http:// veya https:// ile başlamıyorsa base_url ekle
         if not val.startswith(("http://", "https://")):
           val = base_url + val
 
         return f"{prefix}{val}{quote}"
 
-      # Tırnaklı veya tırnaksız URI/URL yapılarını esnek bir şekilde yakalar
       line = re.sub(r'((?:URI|URL)=["\']?)([^"\']*)(["\']?)', fix_url, line)
 
     processed_lines.append(line)
   else:
-    # # ile başlamayan satırlar (ts, m4s veya alt m3u8 segmentleri)
     if not line.startswith(("http://", "https://")):
       line = base_url + line
     processed_lines.append(line)
